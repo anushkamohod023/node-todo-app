@@ -1,35 +1,44 @@
-pipeline{
+pipeline {
     agent { label 'dev-server' }
-    
-    stages{
-        stage("Code Clone"){
-            steps{
-                echo "Code Clone Stage"
-                git url: "https://github.com/LondheShubham153/node-todo-cicd.git", branch: "master"
+
+    environment {
+        IMAGE_NAME = "node-app"
+        CONTAINER  = "node-app-container"
+    }
+
+    stages {
+        stage("Code Clone") {
+            steps {
+                echo "Cloning repository..."
+                git url: "https://github.com/anushkamohod023/node-todo-app.git", branch: "master"
             }
         }
-        stage("Code Build & Test"){
-            steps{
-                echo "Code Build Stage"
-                sh "docker build -t node-app ."
+
+        stage("Build Image") {
+            steps {
+                echo "Building Docker image..."
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
-        stage("Push To DockerHub"){
-            steps{
-                withCredentials([usernamePassword(
-                    credentialsId:"dockerHubCreds",
-                    usernameVariable:"dockerHubUser", 
-                    passwordVariable:"dockerHubPass")]){
-                sh 'echo $dockerHubPass | docker login -u $dockerHubUser --password-stdin'
-                sh "docker image tag node-app:latest ${env.dockerHubUser}/node-app:latest"
-                sh "docker push ${env.dockerHubUser}/node-app:latest"
-                }
+
+        stage("Deploy") {
+            steps {
+                echo "Deploying container locally..."
+                sh '''
+                    docker stop ${CONTAINER} || true
+                    docker rm ${CONTAINER} || true
+                    docker run -d --name ${CONTAINER} -p 3000:3000 ${IMAGE_NAME}:latest
+                '''
             }
         }
-        stage("Deploy"){
-            steps{
-                sh "docker compose down && docker compose up -d --build"
-            }
+    }
+
+    post {
+        success {
+            echo "Deployment successful!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs."
         }
     }
 }

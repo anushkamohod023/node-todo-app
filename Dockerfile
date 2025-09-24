@@ -1,21 +1,23 @@
-# Node Base Image
+# Use official Node 18 Alpine image
 FROM node:18-alpine
 
-# Working Directory
+# Set working directory
 WORKDIR /app
 
-# Copy all code
-COPY . .
+# Copy package files first 
+COPY package*.json ./
 
-# Install the dependencies
+# Install dependencies
 RUN npm install
+
+# Copy the rest of the code
+COPY . .
 
 # Run tests 
 RUN npm test
 
 # Expose port 
-EXPOSE 3000
+EXPOSE 8000
 
-# Run the code
+# Start the app
 CMD ["node", "app.js"]
-
